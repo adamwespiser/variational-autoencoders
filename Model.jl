@@ -1,5 +1,6 @@
 module Model
-using Random, Distributions
+using Random
+using Distributions:Normal, Bernoulli
 
 using Flux
 using Flux.Tracker:TrackedArray, TrackedReal, track
@@ -13,6 +14,8 @@ function encoder(latent_size::Int)
     Dense(6 * 6 * 64, latent_size * 2)
   )
 end
+
+
 
 function decoder(latent_size::Int)
   Chain(
@@ -33,16 +36,11 @@ end
 function random_sample_decode(
     latent_size::Int64,
     samples::Int64,
-    X_samples
+    x
   )
-  decoder(latent_size)(X_samples)
+  decoder(latent_size)(x)
 end
 
-
-function reparameterize(x_mean, x_std)
-  eps = rand(Normal(1,1), size(x_mean))
-  return eps * exp(x_std * 0.5) + x_mean
-end
 
 # TODO figure out what the type of X should be
 # and if we want to drop the TrackedArray
@@ -50,10 +48,60 @@ end
 # Using Flux.Tracker: data; data(X)
 # However, we'll drop the grads
 function split_encoder_result(X, n_latent::Int64)
-  means = X[1:n_latent, :]
-  stdevs = X[(n_latent + 1):(n_latent * 2), :]
-  return means, stdevs
+  μ = X[1:n_latent, :]
+  logσ = X[(n_latent + 1):(n_latent * 2), :]
+  return μ, logσ
 end
+
+function split_encoder_result(X)
+  n_latent = convert(Int, floort(size(X,1) / 2))
+  μ = X[1:n_latent, :]
+  logσ = X[(n_latent + 1):(n_latent * 2), :]
+  return μ, logσ
+end
+
+## reparameterize the results of 'encoder'
+# onto a Normal(0,1) distribution
+# Helper Fn
+function reparameterize(μ, logσ)
+  eps = rand(Normal(0,1), size(μ))
+  return eps * exp(logσ * 0.5) + μ
+end
+
+# KL-divergence divergence, between approximate posterior/prior
+# Helper function
+function kl_q_p(μ, logσ)
+  return 0.5 * sum(exp.(2 .* logσ) + μ.^2 .- 1 .- (2 .* logσ))
+end
+
+# logp(x|z), conditional probability of data given latents.
+# requires: f
+function logp_x_z(x, z, f)
+  return sum(logpdf.(Bernoulli.(f(z)), x))
+end
+
+# Monte Carlo estimator of mean ELBO using M samples.
+# requires: g, f
+function L̄(X, g, f, M)
+  (μ̂, logσ̂) = g(X);
+  return (logp_x_z(X, reparameterize.(μ̂, logσ̂), f) - kl_q_p(μ̂, logσ̂)) * 1 // M
+end
+
+# Sample from the learned model.
+##modelsample() = rand.(Bernoulli.(f(z.(zeros(Dz), zeros(Dz)))))
+
+# build_loss
+#   f - decoder
+#   g - split_encoder_result . encoder
+#   M - n_samples
+# returns loss function for X with input g/f M
+function build_loss(g, f, M)
+  return X -> (-L̄(X, g, f, M) + 0.01f0 * sum(x->sum(x.^2), params(f)))
+end
+
+## TODO
+# specify a return s.t. for a given data shape
+# we can return
 
 
 end
