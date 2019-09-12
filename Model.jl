@@ -67,18 +67,18 @@ end
 # Helper Fn
 function reparameterize(μ, logσ)
   eps = rand(Normal(0,1), size(μ))
-  return eps * exp(logσ * 0.5) + μ
+  return eps * exp(logσ * 0.5f0) + μ
 end
 
 
 # KL-divergence divergence, between approximate posterior/prior
 # Helper function
 function kl_q_p(μ, logσ)
-  return 0.5 * sum(exp.(2 .* logσ) + μ.^2 .- 1 .- (2 .* logσ))
+  return 0.5f0 * sum(exp.(2f0 .* logσ) + μ.^2 .- 1 .- (2 .* logσ))
 end
 
 function sigmoid(z)
-  return 1.0 ./ (1.0 .+ exp(-z))
+  return 1.0 ./ (1.0f0 .+ exp(-z))
 end
 
 # logp(x|z), conditional probability of data given latents.

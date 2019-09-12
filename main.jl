@@ -25,6 +25,9 @@ function test_adam_step()
   opt = ADAM()
   @test typeof(loss_fn(X)) == TrackedReal{Float64}
 
+  X = float.(X .> 0.5)
+  Flux.train!(loss_fn, ps, zip([X]), opt)
+
   @test true == true
 end
 
@@ -47,7 +50,6 @@ function test_conv_deconv()
 end
 
 test_conv_deconv()
-
 
 
 
