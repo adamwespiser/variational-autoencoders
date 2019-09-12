@@ -8,17 +8,34 @@ import .Model:
   decoder,
   split_encoder_result,
   random_sample_decode,
-  reparameterize,
-  loss
+  create_vae
 
 using Test
+using Flux
+using Flux.Tracker: TrackedReal
+
+function test_adam_step()
+  n_sample = 1
+  n_latent = 10
+  dataset = get_MINST(n_sample)
+  X = dataset.train_x
+  println(typeof(X))
+  println(size(X))
+  ps, loss_fn = create_vae(n_latent, n_sample)
+  opt = ADAM()
+  @test typeof(loss_fn(X)) == TrackedReal{Float64}
+
+  @test true == true
+end
+
+test_adam_step()
 
 function test_conv_deconv()
   dataset = get_MINST()
 
   n_sample = 100
   n_latent = 10
-  X = convert(Array{Float64,3},dataset.train_x[:,:,1:n_sample])
+  X = convert(Array{Float32,3},dataset.train_x[:,:,1:n_sample])
   enc_model = encoder(n_latent)
   X_transformed = enc_model(reshape(X, 28, 28, 1, n_sample))
 
