@@ -12,10 +12,25 @@ import .Model:
   random_sample_decode,
   create_vae
 
+  include("../src/Utils.jl")
+  import .Utils:
+    gen_images
+
+
 using Test
 using Flux
 using Flux.Tracker: TrackedReal
 using Printf
+
+@testset "Image Utilities" begin
+  n_sample = 1
+  n_latent = 10
+  outfile = joinpath("~/Desktop/","sample_img.png")
+  ps, loss_fn, f, g = create_vae(n_latent, n_sample)
+  gen_images(outfile, f, n_latent)
+  @test isfile(outfile)
+end
+
 
 
 function test_adam_step()

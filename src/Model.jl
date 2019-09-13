@@ -33,21 +33,20 @@ function decoder(latent_size::Int)
 end
 
 
-function random_sample_decode(
-    latent_size::Int64,
-    samples::Int64
-  )
-  decoder(latent_size)(rand(Normal(1,1), (latent_size, samples)))
+function random_sample_decode(f,latent_size::Int64,samples::Int64)
+  f(rand(Normal(0,1), (latent_size, samples)))
 end
 
 
-function random_sample_decode(
-    latent_size::Int64,
-    samples::Int64,
-    x
-  )
-  decoder(latent_size)(x)
+function random_sample_decode(f,x)
+  f(x)
 end
+
+function model_sample(f, latent_size)
+  zero_input = zeros(Float32, latent_size)
+  rand.(Bernoulli.(sigmoid.(f(reparameterize.(zero_input, zero_input)))))
+end
+
 
 
 function split_encoder_result(X, n_latent::Int64)
@@ -93,12 +92,6 @@ end
 function L̄(X, g, f, M)
   (μ̂, logσ̂) = split_encoder_result(g(X));
   return (logp_x_z(X, reparameterize.(μ̂, logσ̂), f) - kl_q_p(μ̂, logσ̂)) * 1 // M
-end
-
-
-function model_sample(f, latent_size)
-  zero_input = zeros(Float32, latent_size)
-  rand.(Bernoulli.(reparameterize(zero_input, zero_input)))
 end
 
 
