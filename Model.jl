@@ -64,7 +64,6 @@ end
 
 ## reparameterize the results of 'encoder'
 # onto a Normal(0,1) distribution
-# Helper Fn
 function reparameterize(μ, logσ)
   eps = rand(Normal(0,1), size(μ))
   return eps * exp(logσ * 0.5f0) + μ
@@ -72,7 +71,6 @@ end
 
 
 # KL-divergence divergence, between approximate posterior/prior
-# Helper function
 function kl_q_p(μ, logσ)
   return 0.5f0 * sum(exp.(2f0 .* logσ) + μ.^2 .- 1 .- (2 .* logσ))
 end
@@ -82,7 +80,6 @@ function sigmoid(z)
 end
 
 # logp(x|z), conditional probability of data given latents.
-# requires: f
 function logp_x_z(x, z, f)
   # Note: use of the sigmoid function here
   return sum(logpdf.(Bernoulli.(sigmoid.(f(z))), x))
@@ -90,33 +87,31 @@ end
 
 
 # Monte Carlo estimator of mean ELBO using M samples.
-# requires: g, f
 function L̄(X, g, f, M)
   (μ̂, logσ̂) = split_encoder_result(g(X));
   return (logp_x_z(X, reparameterize.(μ̂, logσ̂), f) - kl_q_p(μ̂, logσ̂)) * 1 // M
 end
 
-# Sample from the learned model.
-##modelsample() = rand.(Bernoulli.(f(z.(zeros(Dz), zeros(Dz)))))
 
-# build_loss
-#   f - decoder
-#   g - split_encoder_result . encoder
-#   M - n_samples
+function model_sample(f, latent_size)
+  zero_input = zeros(Float32, latent_size)
+  rand.(Bernoulli.(reparameterize(zero_input, zero_input)))
+end
+
+
 # returns loss function for X with input g/f M
 function build_loss(g, f, M)
   return X -> (-L̄(X, g, f, M) + 0.01f0 * sum(x->sum(x.^2), params(f)))
 end
 
-## TODO
-# specify a return s.t. for a given data shape
-# we can return
+
+## Interface
 function create_vae(latent_size :: Int64, M :: Int64)
   f = decoder(latent_size)
   g = encoder(latent_size)
   ps = params(f, g)
   loss = build_loss(g, f, M)
-  return ps, loss
+  return ps, loss, f, g
 end
 
 end

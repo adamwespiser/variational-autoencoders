@@ -1,6 +1,10 @@
 
 include("Dataset.jl")
-import .Dataset: get_MINST, TrainTest
+
+import .Dataset:
+  get_MINST,
+  TrainTest,
+  split_X_by_batches
 
 include("Model.jl")
 import .Model:
@@ -13,6 +17,24 @@ import .Model:
 using Test
 using Flux
 using Flux.Tracker: TrackedReal
+using Printf
+
+function run_batches()
+  n_traning_examples = 640
+  batch_size = 64
+  n_latent = 10
+  dataset = get_MINST(n_traning_examples)
+  ps, loss_fn, f, g = create_vae(n_latent, batch_size)
+  X_batches = split_X_by_batches(dataset.train_x, batch_size)
+  opt = ADAM()
+  for epoch_idx=1:100
+    Flux.train!(loss_fn, ps, X_batches, opt)
+    loss_test_set = loss_fn(dataset.test_x[:,:,:,1:batch_size])
+    @info(@sprintf("[%d] test loss : %.4f",epoch_idx, loss_test_set))
+  end
+end
+
+run_batches()
 
 function test_adam_step()
   n_sample = 1
@@ -21,7 +43,7 @@ function test_adam_step()
   X = dataset.train_x
   println(typeof(X))
   println(size(X))
-  ps, loss_fn = create_vae(n_latent, n_sample)
+  ps, loss_fn, f, g = create_vae(n_latent, n_sample)
   opt = ADAM()
   @test typeof(loss_fn(X)) == TrackedReal{Float64}
 
@@ -50,6 +72,4 @@ function test_conv_deconv()
 end
 
 test_conv_deconv()
-
-
 
