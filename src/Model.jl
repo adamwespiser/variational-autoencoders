@@ -42,7 +42,9 @@ function random_sample_decode(f,x)
   f(x)
 end
 
-function model_sample(f, latent_size)
+# Requires the first dimension to be a Dense layer
+function model_sample(f)
+  latent_size = size(f[1].W)[2]
   zero_input = zeros(Float32, latent_size)
   rand.(Bernoulli.(sigmoid.(f(reparameterize.(zero_input, zero_input)))))
 end
@@ -67,8 +69,7 @@ end
 ## reparameterize the results of 'encoder'
 # onto a Normal(0,1) distribution
 function reparameterize(μ, logσ)
-  eps = rand(Normal(0,1), size(μ))
-  return eps * exp(logσ * 0.5f0) + μ
+  return rand(Normal(0,1)) * exp(logσ * 0.5f0) + μ
 end
 
 

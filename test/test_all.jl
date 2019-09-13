@@ -10,11 +10,12 @@ import .Model:
   decoder,
   split_encoder_result,
   random_sample_decode,
-  create_vae
+  create_vae,
+  model_sample
 
-  include("../src/Utils.jl")
-  import .Utils:
-    gen_images
+include("../src/Utils.jl")
+import .Utils:
+  gen_images
 
 
 using Test
@@ -23,41 +24,40 @@ using Flux.Tracker: TrackedReal
 using Printf
 
 @testset "Image Utilities" begin
-  n_sample = 1
+  n_sample = 10
   n_latent = 10
-  outfile = joinpath("~/Desktop/","sample_img.png")
+  outfile = joinpath("/Users/adamwespiser/Desktop/","sample_img.png")
   ps, loss_fn, f, g = create_vae(n_latent, n_sample)
-  gen_images(outfile, f, n_latent)
+
+  model_sample(f)
+
+  gen_images(outfile, f)
   @test isfile(outfile)
 end
 
 
 
-function test_adam_step()
+@testset "ADAM optimization can run" begin
   n_sample = 1
   n_latent = 10
   dataset = get_MINST(n_sample)
   X = dataset.train_x
-  println(typeof(X))
-  println(size(X))
   ps, loss_fn, f, g = create_vae(n_latent, n_sample)
   opt = ADAM()
   @test typeof(loss_fn(X)) == TrackedReal{Float64}
 
   X = float.(X .> 0.5)
   Flux.train!(loss_fn, ps, zip([X]), opt)
-
   @test true == true
 end
 
-test_adam_step()
 
-function test_conv_deconv()
+@testset "Convolution and transpose is isomorphic" begin
   dataset = get_MINST()
 
   n_sample = 100
   n_latent = 10
-  X = convert(Array{Float32,3},dataset.train_x[:,:,1:n_sample])
+  X = dataset.train_x[:,:,:,1:n_sample]
   enc_model = encoder(n_latent)
   X_transformed = enc_model(reshape(X, 28, 28, 1, n_sample))
 
@@ -68,4 +68,14 @@ function test_conv_deconv()
   @test size(Xp) == size(X)
 end
 
-test_conv_deconv()
+
+@testset "MINST dataset: size/shape okay" begin
+  ds = get_MINST()
+  img_shape = (28, 28, 1)
+  n_train = 60000
+  n_test = 10000
+  @test size(ds.train_x) == (img_shape..., n_train)
+  @test size(ds.test_y) == (n_train, )
+  @test size(ds.test_x) ==  (img_shape..., n_test)
+  @test size(ds.test_y) == (n_test, )
+end
