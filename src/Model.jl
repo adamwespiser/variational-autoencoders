@@ -5,15 +5,16 @@ using Distributions:Normal, Bernoulli, logpdf
 using Flux
 export encoder, decoder
 
+
 function encoder(latent_size::Int)
-  Chain(
+  m = Chain(
     Conv((3, 3), 1 => 32, relu, stride = (2, 2)),
     Conv((3, 3), 32 => 64, relu, stride = (2, 2)),
     x -> reshape(x, :, size(x, 4)),
     Dense(6 * 6 * 64, latent_size * 2)
   )
+  return m
 end
-
 
 
 function decoder(latent_size::Int)
@@ -25,7 +26,9 @@ function decoder(latent_size::Int)
     ConvTranspose((3, 3), 32 => 1, stride = (1, 1), pad = (2,2)),
     # Somehow and extra conv filter is getting tacked on...
     # should be (28,28,1,M) but its (29,29,1,M)
-    x -> x[1:28,1:28,1,1:size(x,4)]
+    #x -> x[1:28,1:28,1,1:size(x,4)]
+    x -> x[1:28,1:28,:,:],
+    x -> reshape(x,28,28,1,size(x,4))
   )
 end
 
