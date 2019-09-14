@@ -49,6 +49,12 @@ function model_sample(f)
   rand.(Bernoulli.(sigmoid.(f(reparameterize.(zero_input, zero_input)))))
 end
 
+# overloaded version encodes/decodes X_samples
+function model_sample(g, f, X_samples)
+  xs = reshape(X_samples[1:28, 1:28, 1, 1], 28, 28, 1, 1)
+  (μ̂, logσ̂) = split_encoder_result(g(xs))
+  rand.(Bernoulli.(sigmoid.(f(reparameterize.(μ̂, logσ̂)))))
+end
 
 
 function split_encoder_result(X, n_latent::Int64)
@@ -91,7 +97,7 @@ end
 
 # Monte Carlo estimator of mean ELBO using M samples.
 function L̄(X, g, f, M)
-  (μ̂, logσ̂) = split_encoder_result(g(X));
+  (μ̂, logσ̂) = split_encoder_result(g(X))
   return (logp_x_z(X, reparameterize.(μ̂, logσ̂), f) - kl_q_p(μ̂, logσ̂)) * 1 // M
 end
 

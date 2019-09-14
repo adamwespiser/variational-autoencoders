@@ -13,7 +13,7 @@ import .Model:
   random_sample_decode,
   create_vae
 
-include("Utils")
+include("Utils.jl")
 import .Utils:
   gen_images
 
@@ -30,10 +30,16 @@ function run_batches()
   ps, loss_fn, f, g = create_vae(n_latent, batch_size)
   X_batches = split_X_by_batches(dataset.train_x, batch_size)
   opt = ADAM()
+  if !isdir("output")
+    mkdir("output")
+  end
   for epoch_idx=1:5
     Flux.train!(loss_fn, ps, X_batches, opt)
     loss_test_set = loss_fn(dataset.test_x[:,:,:,1:batch_size])
     @info(@sprintf("[%d] test loss : %.4f",epoch_idx, loss_test_set))
+
+    epoch_img = joinpath(pwd(), "output" , @sprintf("img_%d.png", epoch_idx))
+    gen_images(epoch_img, g, f, dataset.test_x)
   end
 end
 

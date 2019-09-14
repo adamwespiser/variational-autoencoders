@@ -15,4 +15,9 @@ function gen_images(outfile, f)
   save(outfile, sample)
 end
 
+function gen_images(outfile, g, f, X)
+  sample = hcat(img.([model_sample(g, f, X[:,:,:,1]) for i = 1:size(X,4)])...)
+  save(outfile, sample)
+end
+
 end
