@@ -53,7 +53,7 @@ end
 function model_sample(g, f, X_samples)
   xs = reshape(X_samples[1:28, 1:28, 1, 1], 28, 28, 1, 1)
   (μ̂, logσ̂) = split_encoder_result(g(xs))
-  rand.(Bernoulli.(sigmoid.(f(reparameterize.(μ̂, logσ̂)))))
+  sigmoid.(f(reparameterize.(μ̂, logσ̂)))
 end
 
 
@@ -74,18 +74,18 @@ end
 
 ## reparameterize the results of 'encoder'
 # onto a Normal(0,1) distribution
-function reparameterize(μ, logσ)
+function reparameterize(μ :: T, logσ :: T) where {T}
   return rand(Normal(0,1)) * exp(logσ * 0.5f0) + μ
 end
 
 
 # KL-divergence divergence, between approximate posterior/prior
-function kl_q_p(μ, logσ)
+function kl_q_p(μ :: T, logσ :: T) where {T}
   return 0.5f0 * sum(exp.(2f0 .* logσ) + μ.^2 .- 1 .- (2 .* logσ))
 end
 
 function sigmoid(z)
-  return 1.0 ./ (1.0f0 .+ exp(-z))
+  return 1.0f0 ./ (1.0f0 .+ exp(-z))
 end
 
 # logp(x|z), conditional probability of data given latents.
@@ -96,7 +96,7 @@ end
 
 
 # Monte Carlo estimator of mean ELBO using M samples.
-function L̄(X, g, f, M)
+function L̄(X, g, f, M :: Int64)
   (μ̂, logσ̂) = split_encoder_result(g(X))
   return (logp_x_z(X, reparameterize.(μ̂, logσ̂), f) - kl_q_p(μ̂, logσ̂)) * 1 // M
 end

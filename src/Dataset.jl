@@ -29,6 +29,7 @@ end
 
 
 function get_MINST(n_sample :: Int)
+  @assert n_sample < 10000
   test_x, test_y = MNIST.testdata()
   train_x, train_y = MNIST.traindata()
 
