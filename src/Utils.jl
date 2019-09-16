@@ -18,18 +18,18 @@ function gen_images(outfile, f)
 end
 
 function gen_images(outfile, g, f, X)
-  sample = hcat(img.([model_sample(g, f, X[:,:,:,i]) for i = 1:size(X,4)])...)
+  sample = hcat(img.([model_sample(g, f, X[:,:,:,i]).data for i = 1:size(X,4)])...)
   save(outfile, sample)
 end
 
-function rotate(ximg::Array{T, 2}) where {T}
-  i_idx = size(ximg, 1)
-  j_idx = size(ximg, 2)
-  xnew = zeros(T, i_idx, j_idx)
-  for i in range(1, stop = i_idx)
-    for j in  range(1, stop = j_idx)
-      xnew[i,j] = ximg[j,i]
+function rotate(ximg)
+  xcopy = zeros(size(ximg)...)
+  for i in range(1, stop = size(ximg, 1))
+    for j in  range(1, stop = size(ximg, 2))
+      xcopy[i,j] = ximg[j,i]
     end
   end
-  xnew
+  xcopy
+end
+
 end

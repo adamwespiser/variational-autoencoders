@@ -53,6 +53,7 @@ end
 function model_sample(g, f, X_samples)
   xs = reshape(X_samples[1:28, 1:28, 1, 1], 28, 28, 1, 1)
   (μ̂, logσ̂) = split_encoder_result(g(xs))
+  #rand.(Bernoulli.(sigmoid.(f(reparameterize.(μ̂, logσ̂)))))
   sigmoid.(f(reparameterize.(μ̂, logσ̂)))
 end
 
