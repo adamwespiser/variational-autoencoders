@@ -32,16 +32,6 @@ function decoder(latent_size::Int)
   )
 end
 
-
-function random_sample_decode(f,latent_size::Int64,samples::Int64)
-  f(rand(Normal(0,1), (latent_size, samples)))
-end
-
-
-function random_sample_decode(f,x)
-  f(x)
-end
-
 # Requires the first dimension to be a Dense layer
 function model_sample(f)
   latent_size = size(f[1].W)[2]

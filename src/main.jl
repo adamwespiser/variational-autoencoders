@@ -11,7 +11,6 @@ import .Model:
   encoder,
   decoder,
   split_encoder_result,
-  random_sample_decode,
   create_vae
 
 include("Utils.jl")
