@@ -4,6 +4,7 @@ include("Model.jl")
 import .Model:
   model_sample
 
+using Printf
 using Images:
   Gray,
   save
@@ -29,7 +30,7 @@ end
 
 function safe_img_save(x, outfile)
   try
-    save(outfile, x)
+    save(x, outfile)
   catch e
     @error @sprintf("failed write: %s", outfile) e
   end
