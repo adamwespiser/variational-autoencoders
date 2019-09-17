@@ -23,14 +23,10 @@ function decoder(latent_size::Int)
     x -> reshape(x, 7, 7, 32, size(x, 2)),
     ConvTranspose((3, 3), 32 => 64, relu, stride = (2, 2), pad = (0,0)),
     ConvTranspose((3, 3), 64 => 32, relu, stride = (2,2), pad = (0,0)),
-    ConvTranspose((3, 3), 32 => 1, stride = (1, 1), pad = (2,2)),
-    # Somehow and extra conv filter is getting tacked on...
-    # should be (28,28,1,M) but its (29,29,1,M)
-    #x -> x[1:28,1:28,1,1:size(x,4)]
-    x -> x[1:28,1:28,:,:],
-    x -> reshape(x,28,28,1,size(x,4))
+    ConvTranspose((3, 3), 32 => 1, stride = (1, 1), pad = (2,3,2,3)),
   )
 end
+
 
 # Requires the first dimension to be a Dense layer
 function model_sample(f)
@@ -63,15 +59,25 @@ function split_encoder_result(X)
 end
 
 
-## reparameterize the results of 'encoder'
-# onto a Normal(0,1) distribution
 function reparameterize(μ :: T, logσ :: T) where {T}
+  """
+  reparameterize the results of 'encoder'
+  onto a Normal(0,1) distribution,
+  we could also pass "Float32" here instead, which would
+  provide a uniform Distribution
+  """
   return rand(Normal(0,1)) * exp(logσ * 0.5f0) + μ
 end
 
 
-# KL-divergence divergence, between approximate posterior/prior
 function kl_q_p(μ :: T, logσ :: T) where {T}
+  """"
+  KL-divergence divergence, between approximate posterior/prior
+  This is the KLD between a
+  1) distribution of with means μ, variance logσ, and importanty, an
+  identity covariance matrix, and
+  2) A standard normal distribution Normal(μ = 0,σ = 1)
+  """
   return 0.5f0 * sum(exp.(2f0 .* logσ) + μ.^2 .- 1 .- (2 .* logσ))
 end
 
@@ -79,9 +85,17 @@ function sigmoid(z)
   return 1.0f0 ./ (1.0f0 .+ exp(-z))
 end
 
-# logp(x|z), conditional probability of data given latents.
 function logp_x_z(x, z, f)
-  # Note: use of the sigmoid function here
+  """
+  calculates log  P( X = x | Z = z ), reconstruction error
+  or: the conditional probability of data(digit image) given latent(z).
+  Our output is an image, but we are creating a distribution
+  using the sigmoid function to normalize decoder outputs
+  then passing it into a Bernoulli distribution.
+  logpdf(Distribution from decodor, image pixel) ...
+  => logpdf(Bernoulli(0.5f0),{0,1}) -> {-0.693, -0.693}
+  => summate over all of these values
+ """
   return sum(logpdf.(Bernoulli.(sigmoid.(f(z))), x))
 end
 

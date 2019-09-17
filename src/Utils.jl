@@ -17,12 +17,26 @@ function gen_images(outfile, f)
   save(outfile, sample)
 end
 
-function gen_images(outfile, g, f, X)
+function gen_images(
+  outfile :: String,
+  g,
+  f,
+  X :: T
+) where {T <: AbstractArray}
   sample = hcat(img.([model_sample(g, f, X[:,:,:,i]).data for i = 1:size(X,4)])...)
-  save(outfile, sample)
+  safe_img_save(outfile, sample)
 end
 
-function rotate(ximg)
+function safe_img_save(x, outfile)
+  try
+    save(outfile, x)
+  catch e
+    @error @sprintf("failed write: %s", outfile) e
+  end
+end
+
+
+function rotate(ximg :: T) where {T <: AbstractArray}
   xcopy = zeros(size(ximg)...)
   for i in range(1, stop = size(ximg, 1))
     for j in  range(1, stop = size(ximg, 2))
