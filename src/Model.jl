@@ -3,33 +3,38 @@ using Random
 using Distributions:Normal, Bernoulli, logpdf
 
 using Flux
-export encoder, decoder
 
 
-function encoder(latent_size::Int)
-  m = Chain(
+function conv_MINST_model(latent_size::Int)
+  """
+  Convolutional Encoder (g) and Decoder (f)
+  which have the following properties:
+  X ~ f(reparameterize.(split_encoder_result(g(X))))
+
+  """
+  g = Chain(
     Conv((3, 3), 1 => 32, relu, stride = (2, 2)),
     Conv((3, 3), 32 => 64, relu, stride = (2, 2)),
     x -> reshape(x, :, size(x, 4)),
     Dense(6 * 6 * 64, latent_size * 2)
   )
-  return m
-end
-
-
-function decoder(latent_size::Int)
-  Chain(
+  f = Chain(
     Dense(latent_size, 7 * 7 * 32, relu),
     x -> reshape(x, 7, 7, 32, size(x, 2)),
     ConvTranspose((3, 3), 32 => 64, relu, stride = (2, 2), pad = (0,0)),
     ConvTranspose((3, 3), 64 => 32, relu, stride = (2,2), pad = (0,0)),
     ConvTranspose((3, 3), 32 => 1, stride = (1, 1), pad = (2,3,2,3)),
   )
+  return f, g
 end
 
 
-# Requires the first dimension to be a Dense layer
 function model_sample(f)
+  """
+  model_sample(f)
+  where f is a Flux Chain of operations
+  and the first operation is a Dense Layer
+  """
   latent_size = size(f[1].W)[2]
   zero_input = zeros(Float32, latent_size)
   rand.(Bernoulli.(sigmoid.(f(reparameterize.(zero_input, zero_input)))))
@@ -115,11 +120,11 @@ end
 
 ## Interface
 function create_vae(latent_size :: Int64, M :: Int64)
-  f = decoder(latent_size)
-  g = encoder(latent_size)
+  f, g = conv_MINST_model(latent_size)
   ps = params(f, g)
   loss = build_loss(g, f, M)
   return ps, loss, f, g
 end
+
 
 end

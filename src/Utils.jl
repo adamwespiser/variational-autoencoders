@@ -9,6 +9,11 @@ using Images:
   Gray,
   save
 
+using BSON:
+  @save,
+  @load
+
+
 function img(x)
   Gray.(rotate(reshape(x, 28, 28)))
 end
@@ -45,6 +50,21 @@ function rotate(ximg :: T) where {T <: AbstractArray}
     end
   end
   xcopy
+end
+
+function save_model(f, g, outfile)
+  model_pair = (f,g)
+  try
+    @save outfile model_pair
+  catch e
+    @error @sprintf("failed write model to: %s", outfile) e
+  end
+end
+
+function load_model(infile)
+  @load infile model_pair
+  f,g = model_pair
+  return f, g
 end
 
 end

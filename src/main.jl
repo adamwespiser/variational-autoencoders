@@ -17,7 +17,8 @@ import .Model:
 include("Utils.jl")
 import .Utils:
   gen_images,
-  img
+  img,
+  safe_img_save
 
 using Test
 using Flux
@@ -46,7 +47,7 @@ function experiment1()
   x_view = dataset.test_x[:,:,:,viz_idx]
   # save test images (ignored by git)
   x_imgs_test = hcat(img.([x_view[:,:,:,i] for i = 1:size(x_view,4)])...)
-  save(joinpath(output_dir, "test.png"), x_imgs_test)
+  safe_img_save(joinpath(output_dir, "test.png"), x_imgs_test)
 
   # MODEL
   ps, loss_fn, f, g = create_vae(n_latent, batch_size)

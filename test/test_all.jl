@@ -6,27 +6,41 @@ import .Dataset:
 
 include("../src/Model.jl")
 import .Model:
-  encoder,
-  decoder,
   split_encoder_result,
   create_vae,
-  model_sample
+  model_sample,
+  conv_MINST_model
 
 include("../src/Utils.jl")
 import .Utils:
-  gen_images
+  gen_images,
+  save_model,
+  load_model
 
 
 using Test
 using Flux
 using Flux.Tracker: TrackedReal
 using Printf
+using Distributions: Uniform
 
 temp_dir = tempdir()
 
+@testset "Model save/load" begin
+  n_sample = Int(floor(rand(Uniform(10,100))))
+  n_latent = Int(floor(rand(Uniform(1,50)))) * 2
+
+  ps, loss_fn, f, g = create_vae(n_sample, n_latent)
+  file = tempname()
+  save_model(f, g, file)
+
+  fp, gp = load_model
+  @test true
+end
+
 @testset "Image Utilities" begin
-  n_sample = 10
-  n_latent = 10
+  n_sample = Int(floor(rand(Uniform(10,100))))
+  n_latent = Int(floor(rand(Uniform(1,50)))) * 2
   dataset = get_MINST(n_sample)
   ps, loss_fn, f, g = create_vae(n_latent, n_sample)
 
@@ -46,14 +60,14 @@ end
 
 
 @testset "ADAM optimization can run" begin
-  n_sample = 1
-  n_latent = 10
+  n_sample = Int(floor(rand(Uniform(10,100))))
+  n_latent = Int(floor(rand(Uniform(1,50)))) * 2
   dataset = get_MINST(n_sample)
   X = dataset.train_x
   ps, loss_fn, f, g = create_vae(n_latent, n_sample)
   opt = ADAM()
 
-  @test typeof(loss_fn(X)) == TrackedReal{Float64}
+  @test typeof(loss_fn(X)) == TrackedReal{Float32}
   X = float.(X .> 0.5)
   Flux.train!(loss_fn, ps, zip([X]), opt)
   @test true == true
@@ -66,13 +80,13 @@ end
   n_sample = 100
   n_latent = 10
   X = dataset.train_x[:,:,:,1:n_sample]
-  enc_model = encoder(n_latent)
-  X_transformed = enc_model(reshape(X, 28, 28, 1, n_sample))
+  f, g = conv_MINST_model(n_latent)
+
+  X_transformed = g(reshape(X, 28, 28, 1, n_sample))
 
   x_mean, x_std = split_encoder_result(X_transformed, n_latent)
 
-  dec_model = decoder(n_latent)
-  Xp = dec_model(x_mean)
+  Xp = f(x_mean)
   @test size(Xp) == size(X)
 end
 
